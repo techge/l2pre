@@ -3,14 +3,14 @@ bitarray==1.6.3
 boofuzz==0.3.0
 cffi==1.14.4
 click==7.1.2
-cryptography==3.3.1
+cryptography==3.3.2
 dnspython==2.1.0
 Flask==1.1.2
 future==0.18.2
-impacket==0.9.22
+impacket==0.9.23
 itsdangerous==1.1.0
 ipython==7.22.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 ldap3==2.9
 ldapdomaindump==0.9.3
 MarkupSafe==1.1.1
