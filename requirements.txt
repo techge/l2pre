@@ -7,7 +7,7 @@ cryptography==3.3.1
 dnspython==2.1.0
 Flask==1.1.2
 future==0.18.2
-impacket==0.9.22
+impacket==0.9.23
 itsdangerous==1.1.0
 ipython==7.22.0
 Jinja2==2.11.2
