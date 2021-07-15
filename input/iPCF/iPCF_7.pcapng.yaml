@@ -1,0 +1,5 @@
+channel: 157
+cycle_time: 16
+scanning_mode: "all"
+clients: 1
+ipcf-lf: 1

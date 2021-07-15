@@ -1,0 +1,8 @@
+[submodule "src/nemesys"]
+	path = src/nemesys
+	url = https://github.com/techge/nemesys.git
+	branch = l2pre
+[submodule "src/netzob-src"]
+	path = src/netzob-src
+	url = https://github.com/techge/netzob.git
+	branch = l2pre
