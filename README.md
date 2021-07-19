@@ -8,13 +8,19 @@ TODO (+ add overview figure)
 
 ### Clone and install all dependencies
 
+You need libpcap and Python 3.8 and a bunch of python modules (installed via pip, so you need that as well). If you want to measure [the FMS](#format-match-score), you need tshark as well.
+
+The following commands are based on a Debian system, in case you want to execute the scripts on your system directly. We recommend using the Docker container instead, to prevent any dependecy problems at all. See [Dockerfile usage](#dockerfile).
+
 ```
+apt-get update && apt-get install libpcap-dev tshark git python3 python3-pip
 git clone --recursive https://github.com/techge/l2pre.git
 cd l2pre
-TODO
+pip3 install pylstar==0.1.2 numpy==1.20.2
+cd src/netzob-src/netzob && python3 setup.py install && cd ../..
+pip3 install -r src/nemesys/requirements.txt
+pip3 install -r requirements.txt
 ```
-
-Or just use a Docker container as explained below.
 
 ### Dockerfile
 
@@ -74,21 +80,21 @@ Start feature detection...
 
 > Deduplicate messages...
 
-Symbol_1c020000: 4 unique messages                                                                                                                                                                                                             
-Frame_type | MAC            | MAC            | MAC            | Field    | channel | Field  | channel | Field                                                                                                                                  
----------- | -------------- | -------------- | -------------- | -------- | ------- | ------ | ------- | -----                                                                                                                                  
-'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '10bb10' | '9d'    | '60ad' | '01'    | '00'                                                                                                                                   
-'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | 'a0cc10' | '9d'    | '60ad' | '01'    | '80'                                                                                                                                   
-'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '703a10' | 'a1'    | '60ad' | '00'    | '00'                                                                                                                                   
-'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '404d10' | 'a1'    | '60ad' | '00'    | '80'                                                                                                                                   
----------- | -------------- | -------------- | -------------- | -------- | ------- | ------ | ------- | -----                                                                                                                                  
-                                                                                                                                                                                                                                               
-Symbol_2c013c00: 7 unique messages                                                                                                                                                                                                             
-Frame_type | MAC            | MAC            | MAC            | SEQ    | Field | SEQ  | Field      | Checksum                                                                                                                                  
----------- | -------------- | -------------- | -------------- | ------ | ----- | ---- | ---------- | ----------                                                                                                                                
-'2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '10'  | '00' | '00000000' | '00000000'                                                                                                                                
-'2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '005e0000' | '00000000'                                                                                                                                
-'2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '004a0000' | '00000000'                                                                                                                                
+Symbol_1c020000: 4 unique messages
+Frame_type | MAC            | MAC            | MAC            | Field    | channel | Field  | channel | Field
+---------- | -------------- | -------------- | -------------- | -------- | ------- | ------ | ------- | -----
+'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '10bb10' | '9d'    | '60ad' | '01'    | '00'
+'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | 'a0cc10' | '9d'    | '60ad' | '01'    | '80'
+'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '703a10' | 'a1'    | '60ad' | '00'    | '00'
+'1c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '404d10' | 'a1'    | '60ad' | '00'    | '80'
+---------- | -------------- | -------------- | -------------- | -------- | ------- | ------ | ------- | -----
+
+Symbol_2c013c00: 7 unique messages
+Frame_type | MAC            | MAC            | MAC            | SEQ    | Field | SEQ  | Field      | Checksum
+---------- | -------------- | -------------- | -------------- | ------ | ----- | ---- | ---------- | ----------
+'2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '10'  | '00' | '00000000' | '00000000'
+'2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '005e0000' | '00000000'
+'2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '004a0000' | '00000000'
 '2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '00460000' | '00000000'
 '2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '00650000' | '00000000'
 '2c013c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '0000' | '14'  | '00' | '00740000' | '00000000'
@@ -96,8 +102,8 @@ Frame_type | MAC            | MAC            | MAC            | SEQ    | Field |
 ---------- | -------------- | -------------- | -------------- | ------ | ----- | ---- | ---------- | ----------
 
 Symbol_2c023c00: 143 unique messages
-(only showing 30 here)                                     
-Frame_type | MAC            | MAC            | MAC            | SEQ    | Field  | SEQ  | channel | Field  | Checksum  
+(only showing 30 here)
+Frame_type | MAC            | MAC            | MAC            | SEQ    | Field  | SEQ  | channel | Field  | Checksum
 ---------- | -------------- | -------------- | -------------- | ------ | ------ | ---- | ------- | ------ | ----------
 '2c023c00' | 'd4f5274188c0' | 'd4f5275645a0' | 'd4f5275645a0' | '0000' | '1e00' | '00' | '9d'    | '05ee' | '00000000'
 '2c023c00' | 'd4f5274188c0' | 'd4f5275645a0' | 'd4f5275645a0' | '0000' | '1600' | '00' | '9d'    | '0fff' | '00000000'
@@ -132,14 +138,14 @@ Frame_type | MAC            | MAC            | MAC            | SEQ    | Field  
 ---------- | -------------- | -------------- | -------------- | ------ | ------ | ---- | ------- | ------ | ----------
 
 Symbol_0c020000: 2 unique messages
-Frame_type | MAC            | MAC            | MAC            | SEQ    | Field | channel | Checksum  
+Frame_type | MAC            | MAC            | MAC            | SEQ    | Field | channel | Checksum
 ---------- | -------------- | -------------- | -------------- | ------ | ----- | ------- | ----------
 '0c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '0000' | '10'  | '9d'    | '00000000'
 '0c020000' | 'ffffffffffff' | 'd4f5275645a0' | 'd4f5275645a0' | '0000' | '10'  | 'a1'    | '00000000'
 ---------- | -------------- | -------------- | -------------- | ------ | ----- | ------- | ----------
 
 Symbol_2c093c00: 6 unique messages
-Frame_type | MAC            | MAC            | MAC            | Field                     
+Frame_type | MAC            | MAC            | MAC            | Field
 ---------- | -------------- | -------------- | -------------- | --------------------------
 '2c093c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | 'c0351068000000002ffd4f66'
 '2c093c00' | 'd4f5275645a0' | 'd4f5274188c0' | 'd4f5275645a0' | '90bb10c50000000061c4f763'
@@ -152,7 +158,7 @@ Frame_type | MAC            | MAC            | MAC            | Field
 Protocol format exported to 'reports/protocol_format_2021-07-15_171616.txt'.
 ```
 
-## Format Score Match
+## Format Match Score
 
 TODO
 
