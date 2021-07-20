@@ -819,6 +819,9 @@ class FeatureExtraction(object):
         else:
             frametypes_cluster = cluster_list[0]
 
+        # sort cluster by symbol.name to get reproducible exports
+        frametypes_cluster.sort(key=lambda x: x.name)
+
         # make sure that length of last field equals length of biggest/smallest message
         for sym in frametypes_cluster:
             self._adaptLengthFields(sym)
