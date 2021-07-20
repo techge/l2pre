@@ -202,7 +202,6 @@ class PayloadFinder(object):
         nopayload = runTest(nopayload, [IP, IPv6])
 
         # try messages without payload again, now for layer2 with known MACs
-        # TODO is looking for ARP an option?
         if not omit_ether:
             nopayload = runTest(nopayload, [Ether])
 
@@ -281,10 +280,6 @@ class PayloadFinder(object):
 
                     new_m.payload = packet # store parsed scapy packet
                     new_m.payload_data = m.data[offset:] # store bytes
-
-                    # store additional information based on parsed scapy packet
-                    # TODO Not sure which and if needed in following processes
-
                     new_m.data = m.data[:offset] # cut off payload for good
 
                     break # offset found, stop trying others

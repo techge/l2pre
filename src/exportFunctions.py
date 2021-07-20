@@ -1,9 +1,11 @@
 # system import
 from os.path import isdir
+from shutil import copyfile
 from time import strftime
 
 # netzob import
 from netzob.Export.WiresharkDissector.WiresharkDissector import WiresharkDissector
+from netzob.Model.Vocabulary.Messages.L2NetworkMessage import L2NetworkMessage
 
 def exportPF(cluster):
     """Export inferred protocol information to folder 'reports'
@@ -31,7 +33,6 @@ def exportPF(cluster):
 def exportWiresharkDissector(cluster):
     """Export a Wireshark dissector written in lua (based on netzob exporter)
     """
-    # FIXME
 
     # create file name based on date and time
     fname = 'wireshark_dissector_' + strftime("%Y-%m-%d_%H%M%S") + '.lua'
@@ -50,11 +51,11 @@ def exportFuzz(cluster):
     """
 
     # create file name based on date and time
-    fname = 'boofuzz_template_' + strftime("%Y-%m-%d_%H%M%S") + '.py'
+    new_template = 'reports/boofuzz_template_' + strftime("%Y-%m-%d_%H%M%S") + '.py'
 
     # open file
     if isdir('reports'):
-        with open('reports/' + fname, 'a+') as template:
+        with open(new_template, 'a+') as template:
 
             # write import
             template.write("from boofuzz import Request, Block, Static, Bytes, Checksum\n\n")
@@ -68,11 +69,12 @@ def exportFuzz(cluster):
                 template.write("{} = Request(children=(\n".format(symbol.name))
                 intendation = "    "
 
-                # FIXME depending on protocol there might be some bytes beforehand
-                # e.g. for 802.11 packets we need a Radiotap header to inject these
-                radiotap = b"\x00\x00\x08\x00\x00\x00\x00\x00"
-                template.write("    Static(name=\"Radiotap\", " + \
-                               "default_value={}),\n".format(str(radiotap)))
+                # Add Radiotap header first, if protocol traces had one, too
+                if isinstance(symbol.messages[0], L2NetworkMessage) and \
+                        symbol.messages[0].l2Protocol == "Radiotap":
+                    radiotap = b"\x00\x00\x08\x00\x00\x00\x00\x00"
+                    template.write("    Static(name=\"Radiotap\", " + \
+                                   "default_value={}),\n".format(str(radiotap)))
 
                 # TODO there could be multiple Checksum fields in a message, but we assume only one at
                 # the end here, would be nice to handle this differently
@@ -159,6 +161,11 @@ def exportFuzz(cluster):
                 template.write("    " + symbol.name + ",\n")
             template.write("]")
 
-    print("\nBoofuzz template exported to \'reports/{}\'.".format(fname))
+    print("\nBoofuzz template exported to {}.".format(new_template))
+
+    # copy to src/boofuzz_template.py as this is imported by src/fuzz.py
+    if isdir('src'):
+        active_template = 'src/boofuzz_template.py'
+        copyfile(new_template, active_template)
 
     return

@@ -4,6 +4,8 @@
 import argparse
 from IPython import embed
 import sys
+from time import time
+
 
 # netzob import
 from netzob.Model.Vocabulary.Functions.EncodingFunctions.TypeEncodingFunction import TypeEncodingFunction
@@ -19,6 +21,8 @@ from utils import import_messages
 def analyze(messages_list: list, args):
 
     print("\nTry to find and cut off payloads with known protocols...")
+    inference_start_time = time()
+
     messages_list_without_payload = []
     finder = PayloadFinder()
     for msgs in messages_list:
@@ -34,6 +38,9 @@ def analyze(messages_list: list, args):
     print("\nStart feature detection...")
     features = FeatureExtraction(messages_list_without_payload, known_MACs)
     cluster = features.execute()
+
+    inference_runtime = time() - inference_start_time
+    print('\nProtocol inferred in {:.3f}s'.format(inference_runtime))
 
     return cluster
 
