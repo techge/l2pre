@@ -280,33 +280,37 @@ class FeatureExtraction(object):
 
     @typeCheck(Field)
     def _getValuesQuick(self, field):
-        """A quicker getValues() function
+        """A quicker and naive getValues() function as netzob's Field.getValues() is quite slow...
 
-        :return: a list detailling all the values current element takes.
+        :param field: field whose values are of interest
+        :type field: :class:`netzob.Model.Vocabulary.Field`
+        :return: a list detailling all the values a field takes.
         :rtype: a :class:`list` of :class:`str`
         :raises: :class:`netzob.Model.Vocabulary.AbstractField.AlignmentException` if an error occurs while aligning messages
         """
-        # FIXME improve code and documentation
 
-        # get position of field
+        # calculate byte position of the field within the symbol
         start = end = 0
         if len(field.fields) == 0:
-            a, b = field.domain.dataType.size
-            end += int(b/8)
+            min_size, max_size = field.domain.dataType.size
+            end = int(max_size/8)
         else:
             for f in field.fields:
-                a, b = f.domain.dataType.size
-                if a == 0:
-                    raise # FIXME raise Error, this function only works for fixed-size fields, use getValues() instead
+                min_size, max_size = f.domain.dataType.size
+                if min_size != max_size:
+                    raise ValueError("_getValuesQuick() only works with Symbols that only have " + \
+                            "fixed-size fields, use Field.getValues() instead.")
                 if f == field:
-                    end += int(b/8)
+                    # we do not append min_size here, start shall be < end
+                    end += int(max_size/8)
                     break
-                start += int(a/8)
-                end += int(b/8)
+                start += int(min_size/8)
+                end += int(max_size/8)
 
+        # retrieve list of message data
         data = [message.data for message in field.messages]
 
-        # get field value and add to list
+        # get field values at calculated position and add them to list
         values = []
         for dat in data:
             value = dat[start:end]
