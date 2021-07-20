@@ -68,8 +68,6 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Fuzzing with boofuzz")
 
-    # FIXME boofuzz_template.py must be in folder src which needs to be done manually...
-
     parser.add_argument('-i', '--interface', required=True, \
             help='Interface to transmit and receive packets')
 
