@@ -251,6 +251,9 @@ class FeatureExtraction(object):
         """Cluster all messages of symbol based on a field. Returns a list of symbols.
         """
 
+        if not symbol.messages:
+            raise ValueError("No messages were given, can not proceed")
+
         cluster = []
 
         # calculate position of field in message
@@ -263,13 +266,15 @@ class FeatureExtraction(object):
             minsize += maxsize
 
         # for every possible value in keyField we sort the corresponding messages in these buckets
-        #for val in set(self._getValuesQuick(keyField)): # FIXME it is somehow broken (test with ethernet/test2.pcapng)
-        for val in set(keyField.getValues()):
+        for val in set(self._getValuesQuick(symbol, keyField)):
             newMessages = []
 
             for m in symbol.messages:
                 if m.data[int(minsize/8):int(maxsize/8)] == val: # maxsize as integer byte value
                     newMessages.append(m)
+
+            if not newMessages:
+                raise ValueError("No messages matching this field value, something's wrong.")
 
             newSymbol = copy.deepcopy(symbol) # TODO implement accurate copy function in netzob
             newSymbol.name = "Symbol_" + val.hex()
@@ -278,10 +283,12 @@ class FeatureExtraction(object):
 
         return cluster # list of Symbols based of keyField value
 
-    @typeCheck(Field)
-    def _getValuesQuick(self, field):
+    @typeCheck(Symbol, Field)
+    def _getValuesQuick(self, symbol, field):
         """A quicker and naive getValues() function as netzob's Field.getValues() is quite slow...
 
+        :param symbol: symbol in which field appear
+        :type symbol: :class:`netzob.Model.Vocabulary.Symbol`
         :param field: field whose values are of interest
         :type field: :class:`netzob.Model.Vocabulary.Field`
         :return: a list detailling all the values a field takes.
@@ -291,21 +298,17 @@ class FeatureExtraction(object):
 
         # calculate byte position of the field within the symbol
         start = end = 0
-        if len(field.fields) == 0:
-            min_size, max_size = field.domain.dataType.size
-            end = int(max_size/8)
-        else:
-            for f in field.fields:
-                min_size, max_size = f.domain.dataType.size
-                if min_size != max_size:
-                    raise ValueError("_getValuesQuick() only works with Symbols that only have " + \
-                            "fixed-size fields, use Field.getValues() instead.")
-                if f == field:
-                    # we do not append min_size here, start shall be < end
-                    end += int(max_size/8)
-                    break
-                start += int(min_size/8)
+        for f in symbol.fields:
+            min_size, max_size = f.domain.dataType.size
+            if f == field:
+                start = end # start is old fields end
                 end += int(max_size/8)
+                break
+            if min_size != max_size:
+                self._printFields(symbol)
+                raise ValueError("_getValuesQuick() only works with Symbols that only have " + \
+                        "fixed-size fields, use Field.getValues() instead.")
+            end += int(max_size/8)
 
         # retrieve list of message data
         data = [message.data for message in field.messages]
@@ -359,9 +362,9 @@ class FeatureExtraction(object):
 
         # Decide which MAC field to use as sender address (which is the one counting up the seq)
         if len(mac_field_index) == 1:
-            mac_addrs = self._getValuesQuick(symbol.fields[mac_field_index[0]])
+            mac_addrs = self._getValuesQuick(symbol, symbol.fields[mac_field_index[0]])
         else: # just assume second MAC is source TODO make this work without this assumption
-            mac_addrs = self._getValuesQuick(symbol.fields[mac_field_index[1]])
+            mac_addrs = self._getValuesQuick(symbol, symbol.fields[mac_field_index[1]])
 
         # create set of source mac addresses
         src_macs = set(mac_addrs)
