@@ -363,7 +363,7 @@ class FeatureExtraction(object):
         # Decide which MAC field to use as sender address (which is the one counting up the seq)
         if len(mac_field_index) == 1:
             mac_addrs = self._getValuesQuick(symbol, symbol.fields[mac_field_index[0]])
-        else: # just assume second MAC is source TODO make this work without this assumption
+        else: # just assume second MAC is source (just a good guess, but doesn't matter much anyway)
             mac_addrs = self._getValuesQuick(symbol, symbol.fields[mac_field_index[1]])
 
         # create set of source mac addresses
