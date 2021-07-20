@@ -2,7 +2,7 @@
 
 This folder contains pcapng files captured during a session with Siemens Scalance W700 devices using the iPCF feature.
 
-Some requests where produced on a laptop connected to a Scalance W700 device working as client. This was done via [the requests.sh script](./requests.sh) to produce payload content.
+Some requests where produced on a laptop connected to a Scalance W700 device working as client. This was done via [the requests.sh script](../requests.sh) to produce payload content.
 
 |---------|---------|---------|------------------|------------------|---------------|---------|
 | Testno. | clients | channel | cycle time in ms | protocol support | scanning Mode | iPCF-LF |

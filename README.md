@@ -160,5 +160,11 @@ Protocol format exported to 'reports/protocol_format_2021-07-15_171616.txt'.
 
 ## Format Match Score
 
-TODO
+You can calculate the Format Match Score (FMS) as introduced [by Kleber et al.](https://www.usenix.org/conference/woot18/presentation/kleber). They published the implementation [here](https://github.com/vs-uulm/nemesys). To measure the FMS with l2pre use `l2pre_fms.py` [seen here](src/l2pre_fms.py). An exemplary execution with data from [input/ethernet](input/ethernet) is
+
+```
+./src/l2pre_fms.py --no-tunnel input/ethernet/test1.pcapng
+```
+
+Currently, only single file input is supported (TODO prepare to use multiple files as l2pre uses those)
 
