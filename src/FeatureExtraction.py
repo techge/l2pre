@@ -70,20 +70,20 @@ class FeatureExtraction(object):
 
 
     @typeCheck(Symbol, int, object)
-    def _insertField(self, symbol, insert_pos, newField_domain): # TODO put into utils
+    def _insertField(self, symbol, insert_pos, new_field_domain): # TODO put into utils
         """Inserts a field to a specific position. The new field replaces previously used space of
         other field(s) by firstly analysing the given fields. That is to say, this method tries to
         keep the overall size values of fields stable, but may ignores the domain info of the old
         fields (it just creates raw bytes fields).
         """
 
-        newFields = []
+        new_fields = []
 
-        if symbol.fields is None or newField_domain is None:
+        if symbol.fields is None or new_field_domain is None:
             raise TypeError("Fields and field domain can not be None")
 
         # calculate needed size of field to insert
-        _, newField_size = (int(bits/8) for bits in newField_domain.size)
+        _, new_field_size = (int(bits/8) for bits in new_field_domain.size)
 
         # auxiliary function to calculate min size value of field
         def updateMinsize(mins, size):
@@ -115,28 +115,28 @@ class FeatureExtraction(object):
                 if minsize == 0:
                     field_is_optional = True
 
-                newDomains = [] # list of new domains existing because of insertion
+                new_domains = [] # list of new domains existing because of insertion
 
                 # insert oldFields remainings (begin)
                 if curr_size != insert_pos: # new field does not start at old field's beginning
                     size = insert_pos - curr_size
                     if field_is_optional and force_optional:
-                        newDomains.append(Raw(nbBytes=(0, size)))
+                        new_domains.append(Raw(nbBytes=(0, size)))
                     else:
-                        newDomains.append(Raw(nbBytes=(size)))
+                        new_domains.append(Raw(nbBytes=(size)))
                     minsize = updateMinsize(minsize, size)
 
                 # insert our new field
                 if field_is_optional and force_optional:
                     f = Field()
-                    _, size = newField_domain.size
-                    newDomains.append(Raw(nbBytes=(0, int(size/8)))) # insert new field
+                    _, size = new_field_domain.size
+                    new_domains.append(Raw(nbBytes=(0, int(size/8)))) # insert new field
                 else:
-                    newDomains.append(newField_domain) # insert new field
-                newField_index = len(newDomains) - 1 # index of inserted field for return value
+                    new_domains.append(new_field_domain) # insert new field
+                new_field_index = len(new_domains) - 1 # index of inserted field for return value
 
                 # delete following fields if necessary
-                while curr_size + maxsize < insert_pos + newField_size: # new field spans >1 field
+                while curr_size + maxsize < insert_pos + new_field_size: # new field spans >1 field
                     if oldField == symbol.fields[-1]: # we already reached the last field
                         print("Reached last field")
                         break
@@ -148,23 +148,23 @@ class FeatureExtraction(object):
                     fo.replaceField(symbol.fields[i], []) # delete field
 
                 # decreasing minsize only now, because field overflow wasn't done before
-                minsize = updateMinsize(minsize, newField_size)
+                minsize = updateMinsize(minsize, new_field_size)
 
                 # insert oldFields remainings (end)
-                if curr_size + maxsize > insert_pos + newField_size: # some space left in old field
-                    size_left = (curr_size + maxsize) - (insert_pos + newField_size)
+                if curr_size + maxsize > insert_pos + new_field_size: # some space left in old field
+                    size_left = (curr_size + maxsize) - (insert_pos + new_field_size)
                     #minsize = updateMinsize(minsize, size_left)
                     if field_is_optional and force_optional:
-                        newDomains.append(Raw(nbBytes=(0, size_left)))
+                        new_domains.append(Raw(nbBytes=(0, size_left)))
                     else:
-                        newDomains.append(Raw(nbBytes=(minsize,size_left)))
+                        new_domains.append(Raw(nbBytes=(minsize,size_left)))
 
-                newFields = fo.replaceField(oldField, newDomains)
+                new_fields = fo.replaceField(oldField, new_domains)
                 break
 
             curr_size += maxsize # increase size for next loop level
 
-        return newFields[newField_index] # return inserted field
+        return new_fields[new_field_index] # return inserted field
 
 
     @typeCheck(list)
