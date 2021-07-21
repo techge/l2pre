@@ -243,7 +243,7 @@ class FeatureExtraction(object):
                 break
 
         if ret_symbol is None:
-            raise("Did not find any address field, we can not proceed :(")
+            raise ValueError("Did not find any address field, we can not proceed :(")
 
         return ret_symbol
 
