@@ -3,6 +3,9 @@ from binascii import unhexlify
 from re import finditer
 import copy
 
+# nemere import
+from nemere.utils.baseAlgorithms import ngrams
+
 # netzob import
 from netzob.Common.Utils.Decorators import typeCheck
 from netzob.Inference.Vocabulary.EntropyMeasurement import EntropyMeasurement
@@ -176,74 +179,85 @@ class FeatureExtraction(object):
         return newFields[newField_index] # return inserted field
 
 
-    @typeCheck(list, float)
-    def _macEx(self, messages, threshold=0.8):
-        """This method finds occurrences of MAC addresses stored in self.known_MACs in all messages.
-        At first it only collects all occurences to secondly analyse the likelihood that this is
-        actually the standard position/field for the MAC address. If there is a MAC address at
-        a specific position in more cases than the specified threshold, we assume, that this indeed
-        a MAC field. Lastly, a symbol containing the fields and messages is returned.
+    @typeCheck(list)
+    def _addrEx(self, messages):
+        """This method finds address fields by creating n-grams of 6 to 1 byte(s). A n-gram that
+        appears on multiple, not overlapping positions within different message is probably a
+        address. This method works on the following assumptions:
+            * there are at least two address fields
+            * there is actually a communication, a party is sometimes a sender, sometimes a receiver
+
+        :param messages: list of messages
+        :type list:
+        :return: a symbol containing the address fields and empty fields otherwise
+        :rtype: :class:`netzob.Model.Vocabulary.Symbol`
         """
 
-        mac_pos_cnt = {} # count how often a MAC was seen at a position
-
-    # first search for MAC appearances in all messages and count these in mac_pos_cnt
-        for m in messages:
-            for mac in self.known_MACs:
-                for finding in finditer(mac, m.data): # find all occurences of mac in message
-                    if finding.start() in mac_pos_cnt.keys():
-                        mac_pos_cnt[finding.start()]+=1
+        def searchForAddr(addr: str):
+            addr_pos_cnt = {} # count how often a addr was seen at a position
+            for m in messages:
+                for finding in finditer(addr, m.data): # find all occurences of addr in message
+                    if finding.start() in addr_pos_cnt.keys():
+                        addr_pos_cnt[finding.start()]+=1
                     else: # create new dict entry if not already in the dict
-                        mac_pos_cnt.update({finding.start(): 1})
+                        addr_pos_cnt[finding.start()]=1
+            return addr_pos_cnt
 
-    # second evaluate certainty of found MAC positions and add to mac_fields accordingly
-        mac_fields = [] # list of MAC fields found
-        prev_mac_positions = [] # list of positions of MACs found previous of current pos
-        next_mac_positions = sorted(mac_pos_cnt.keys()) # following positions of MACs
-        for mac_pos in sorted(mac_pos_cnt.keys()):
+        def evaluateAddrCertainty(addr_pos_cnt: dict, addr_len: int):
+            if len(addr_pos_cnt) > 1 and len(addr_pos_cnt) < 5:
+                prev_addr_position = None # position of previous address
+                next_addr_positions = sorted(addr_pos_cnt.keys()) # following positions of addresses
+                for addr_pos in sorted(addr_pos_cnt.keys()):
+                    next_addr_positions.remove(addr_pos)
+                    # make sure there is no overlapping with other address appearances
+                    # if overlappting is found, we do not trust this address and return False
+                    if (prev_addr_position and prev_addr_position + addr_len > addr_pos) or \
+                            (next_addr_positions and next_addr_positions[0] < addr_pos + addr_len):
+                        return False
+                    prev_addr_position = addr_pos
+                return True
+            else:
+                return False
 
-            next_mac_positions.remove(mac_pos)
-
-            # make sure there is no overlapping with other MAC appearances
-            # if overlappting is found, we do not add the field to our symbol
-            # TODO may create multiple, conflicting symbols instead, as chances are high
-            #      that there are just different message types found here
-            if all(mac_pos >= prev_mac + 6 for prev_mac in prev_mac_positions) and \
-                all(mac_pos + 6 <= next_mac for next_mac in next_mac_positions):
-
-                # now look if threshold is met
-                # TODO may create multiple, conflicting symbols instead, as chances are high
-                #      that there are just different message types found here
-                if mac_pos_cnt[mac_pos]/len(messages) >= threshold:
-                    field = Field(Raw(nbBytes=6), name="MAC")
-                    mac_fields.append({'position': mac_pos, 'field': field})
-
-            prev_mac_positions.append(mac_pos)
-
-    # lastly create full list of fields including our newly found MAC fields
-        # poor men's way to find max size of messages
-        max_len = 0
-        for msg in messages: 
-            if len(msg.data) > max_len:
-                max_len = len(msg.data)
-
-        # create complete field list for symbol
-        fields = []
-        if mac_fields: # go through list of possible MAC fields and create fields list
+        def createFields(addr_positions: list, addr_len: int):
+            max_len = max(len(m.data) for m in messages)
+            fields = []
             i = 0
-            for mac in mac_fields:
-                pos = mac['position']
-                if pos > i: # there are some bytes that are no MAC addr
-                    fields.append(Field(Raw(nbBytes=pos-i))) # add field for bytes in between
-                fields.append(mac['field'])
-                i = pos+6
-            # there are still bytes left after last MAC field, so create another field for these
+            for pos in addr_positions:
+                if pos > i: # there are some bytes that are no address field, so filling up
+                    fields.append(Field(Raw(nbBytes=pos - i))) # add field for bytes in between
+                new_field = Field(Raw(nbBytes=addr_len))
+                new_field.name = "Address"
+                fields.append(new_field)
+                i = pos + addr_len
+            # there are still bytes left after last address field, so create another field for these
             if i < max_len:
                 fields.append(Field(Raw(nbBytes=(0,max_len))))
-        else: # did not find any MAC addr
-            fields.append(Field(Raw(nbBytes=(0,max_len)))) # just create a big fat field
+            return Symbol(fields, messages)
 
-        return Symbol(fields, messages)
+
+        # we try n-gram of 6 to 1 Byte(s) as address candidates. Those candidates that appear
+        # at different positions and do not overlap are probably cool
+        ret_symbol = None
+        for addr_len in range(6,1,-1):
+            for addr_cand in ngrams(messages[0].data, addr_len):
+                addr_pos_cnt = searchForAddr(addr_cand)
+                if evaluateAddrCertainty(addr_pos_cnt, addr_len):
+                    addr_positions = sorted(addr_pos_cnt.keys())
+                    ret_symbol = createFields(addr_positions, addr_len)
+                    # TODO we are satisfied with the very first successful finding, might be worth
+                    # to find another heuristic to evaluate the correctness. The reason for the
+                    # current approach is the fact that i) it works and ii) addresses of multiple
+                    # bytes will produce multiple, following fields that look fine, but usually
+                    # it should be the first that is actually correct
+                    break
+            if ret_symbol is not None: # there's nothing to do here anymore
+                break
+
+        if ret_symbol is None:
+            raise("Did not find any address field, we can not proceed :(")
+
+        return ret_symbol
 
 
     @typeCheck(Symbol, Field)
@@ -347,7 +361,7 @@ class FeatureExtraction(object):
         # look how many MAC fields we have
         mac_field_index = []
         for field in symbol.fields:
-            if field.name[0:3] == "MAC":
+            if field.name == "Address":
                 mac_field_index.append(symbol.fields.index(field))
 
         # we depend on MAC addresses to evaluate certainty of sequence bytes
@@ -580,8 +594,8 @@ class FeatureExtraction(object):
         # the messages are clustered by first field (bitmask) and stored in analyzed_msgs
         for msgs in messages_list:
 
-            # try to find MAC address fields
-            symbol = self._macEx(msgs)
+            # try to find address fields
+            symbol = self._addrEx(msgs)
 
             # assuming first unidentified field is defining message type,
             # we are clustering the messages by type
