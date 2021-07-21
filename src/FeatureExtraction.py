@@ -19,25 +19,13 @@ from WithPayloadMessage import WithPayloadMessage
 
 
 class FeatureExtraction(object):
-    """This utility class contains all methods to extract features based on known MAC addresses,
-    context information and similar known information. It can detect sequences and checksums as
-    well.
+    """This utility class contains all methods to extract features based on context information and
+    known information. It can detect sequences and checksums as well.
     """
 
-    def _MacStrToBytes(self, maclist): # TODO put into utils
-
-        macbytes = []
-        for mac in maclist:
-            macbyte = unhexlify(mac.replace(':', ''))
-            macbytes.append(macbyte)
-
-        return macbytes
-
-
     @typeCheck(list, set)
-    def __init__(self, messages_list, known_MACs):
+    def __init__(self, messages_list):
         self.messages_list = messages_list
-        self.known_MACs = self._MacStrToBytes(known_MACs)
         self.symbol = Symbol()
         pass
 
@@ -351,22 +339,23 @@ class FeatureExtraction(object):
             the previous value equals the current value only seldom, it is likely a one-byte
             sequence field
 
-        As sequence fields are usually based on the sending source, we need to know MAC addresses
+        As sequence fields are usually based on the sending source, we need to know address fields
         for this method to work.
         """
 
         if symbol.fields is None:
             raise TypeError("symbol.fields can not be None")
 
-        # look how many MAC fields we have
-        mac_field_index = []
+        # look how many address fields we have
+        addr_field_index = []
         for field in symbol.fields:
             if field.name == "Address":
-                mac_field_index.append(symbol.fields.index(field))
+                addr_field_index.append(symbol.fields.index(field))
 
-        # we depend on MAC addresses to evaluate certainty of sequence bytes
-        if not mac_field_index:
-            raise ValueError("No MAC fields found in field")
+        # we depend on address addresses to evaluate certainty of sequence bytes
+        if not addr_field_index:
+            self._printFields(symbol)
+            raise ValueError("No address field(s) found in field")
 
         if symbol.messages is None:
             raise TypeError("No messages were given, can not proceed")
@@ -374,14 +363,14 @@ class FeatureExtraction(object):
         if len(symbol.messages) < 50: # sample size too small
             return
 
-        # Decide which MAC field to use as sender address (which is the one counting up the seq)
-        if len(mac_field_index) == 1:
-            mac_addrs = self._getValuesQuick(symbol, symbol.fields[mac_field_index[0]])
-        else: # just assume second MAC is source (just a good guess, but doesn't matter much anyway)
-            mac_addrs = self._getValuesQuick(symbol, symbol.fields[mac_field_index[1]])
+        # Decide which address to use as sender address (which is the one counting up the seq)
+        if len(addr_field_index) == 1:
+           addrs = self._getValuesQuick(symbol, symbol.fields[addr_field_index[0]])
+        else: # just assume second is source (just a good guess, but doesn't matter much anyway)
+            addrs = self._getValuesQuick(symbol, symbol.fields[addr_field_index[1]])
 
-        # create set of source mac addresses
-        src_macs = set(mac_addrs)
+        # create set of source addresses
+        src_addrs = set(addrs)
 
         # create entropy list over all messages
         e_measure = EntropyMeasurement()
@@ -408,13 +397,13 @@ class FeatureExtraction(object):
                 right_neighbor_LSB = True
                 right_neighbor_MSB = True
 
-                for src_mac in src_macs:
+                for src_addr in src_addrs:
 
                     first_val = True # need to set prev_vals first
 
-                    # step through all messages of a specific source MAC
-                    for i, data in enumerate(mac_addrs):
-                        if data == src_mac:
+                    # step through all messages of a specific source
+                    for i, data in enumerate(addrs):
+                        if data == src_addr:
 
                             if pos >= len(symbol.messages[i].data): # message too short!
                                 break
@@ -581,7 +570,7 @@ class FeatureExtraction(object):
 
     @typeCheck(list)
     def _basicFeatureEx(self, messages_list):
-        """Analyze basic feature (MAC, SEQ fields) of messages and cluster messages by first field.
+        """Analyze basic feature (Address, SEQ fields) of messages and cluster messages by type.
 
         :param messages_list: list of lists with messages
         :type list:
@@ -590,7 +579,7 @@ class FeatureExtraction(object):
 
         analyzed_msgs = []
 
-        # for every message set, try to find MAC and SEQ fields
+        # for every message set, try to find address and SEQ fields
         # the messages are clustered by first field (bitmask) and stored in analyzed_msgs
         for msgs in messages_list:
 
@@ -811,18 +800,17 @@ class FeatureExtraction(object):
         for field in symbol.fields:
             print(field.name, ": ", field.domain.dataType.size)
 
-    def execute(self): # TODO fill in threshold options?
+    def execute(self):
         """Apply all detection methods at hand to the given messages.
 
-        >>> known_MACs = ['d4:f5:27:41:88:c8', 'd4:f5:27:56:45:a0']
-        >>> features = FeatureExtraction.FeatureExtraction(messages, known_MACs)
+        >>> features = FeatureExtraction.FeatureExtraction(messages)
         >>> cluster = features.execute()
 
         cluster contains all messages clustered by their first field.
         """
         # TODO enrich example with actual practical example :)
 
-        print("\n> Find basic features in messages (MAC, SEQ and Checksum fields)...")
+        print("\n> Find basic features in messages (Address, SEQ and Checksum fields)...")
         cluster_list = self._basicFeatureEx(self.messages_list)
 
         # we got multiple pcaps and probably different context, do some context analysis...

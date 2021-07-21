@@ -28,15 +28,8 @@ def analyze(messages_list: list, args):
     for msgs in messages_list:
         messages_list_without_payload.append(finder.findPayload(msgs, omit_ether=args.no_tunnel))
 
-    # FIXME properly handle known_IPs/MACs
-    known_MACs = finder.known_MACs
-    known_MACs.add('d4:f5:27:41:88:c8')
-    known_MACs.add('d4:f5:27:56:45:a0')
-    known_MACs.add('38:10:d5:84:4d:06')
-    known_MACs.add('3c:97:0e:61:c6:d4')
-
     print("\nStart feature detection...")
-    features = FeatureExtraction(messages_list_without_payload, known_MACs)
+    features = FeatureExtraction(messages_list_without_payload)
     cluster = features.execute()
 
     inference_runtime = time() - inference_start_time

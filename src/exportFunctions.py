@@ -83,7 +83,7 @@ def exportFuzz(cluster):
                     intendation += "    "
 
                 # go through all fields and write chunks
-                mac_cnt = 1
+                addr_cnt = 1
                 seq_cnt = 1
                 other_field_cnt = 1
                 for field in symbol.fields:
@@ -94,9 +94,9 @@ def exportFuzz(cluster):
                         # only one possible value per symbol
                         args += ", default_value={}".format(field.getValues()[0])
 
-                    elif field.name == "MAC":
-                        args = "name=\"" + "MAC-" + str(mac_cnt) + "\""
-                        mac_cnt += 1
+                    elif field.name == "Address":
+                        args = "name=\"" + "Address-" + str(addr_cnt) + "\""
+                        addr_cnt += 1
                         values = set(field.getValues())
                         if len(values) == 1:
                             primitive = "Static"
