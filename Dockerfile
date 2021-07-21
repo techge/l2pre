@@ -27,7 +27,7 @@ COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
 # create input and output folder
-RUN mkdir input output
+RUN mkdir input reports
 
 # copy complete src folder only now, to prevent regular trigger of pip installs
 COPY src .
