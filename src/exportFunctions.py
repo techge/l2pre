@@ -76,9 +76,8 @@ def exportFuzz(cluster):
                     template.write("    Static(name=\"Radiotap\", " + \
                                    "default_value={}),\n".format(str(radiotap)))
 
-                # TODO there could be multiple Checksum fields in a message, but we assume only one at
-                # the end here, would be nice to handle this differently
-                if symbol.fields[-1].name == "Checksum":
+                # look if there is a checksum at the end
+                if symbol.fields[-1].name == "crc32" or symbol.fields[-1].name == "adler32":
                     template.write(intendation + "Block(\"Fields\", children=(\n")
                     intendation += "    "
 
@@ -118,7 +117,8 @@ def exportFuzz(cluster):
                         args += ", size=" + str(int(maxs/8))
                         args += ", fuzzable=False"
 
-                    elif field.name == "Checksum" and field == symbol.fields[-1]:
+                    elif (field.name == "crc32" or field.name == "adler32") and \
+                            field == symbol.fields[-1]:
                         break
 
                     # unknown field, fuzz it!
@@ -139,15 +139,14 @@ def exportFuzz(cluster):
                     # write chunk
                     template.write(intendation + "{}({}),\n".format(primitive, args))
 
-                if symbol.fields[-1].name == "Checksum":
+                if symbol.fields[-1].name == "crc32" or symbol.fields[-1].name == "adler32":
                     intendation = intendation[4:]
                     template.write(intendation + ")),\n")
                     # add Checksum field now
                     primitive = "Checksum"
                     args = "name=\"" + field.name + "\""
                     args += ", block_name=\"Fields\""
-                    # TODO get actual checksum function, currently we just assume popular crc32
-                    args += ", algorithm=\"{}\"".format("crc32")
+                    args += ", algorithm=\"{}\"".format(symbol.fields[-1].name)
 
                     # write checksum chunk
                     template.write(intendation + "{}({}),\n".format(primitive, args))

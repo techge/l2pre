@@ -2,6 +2,7 @@
 from binascii import unhexlify
 from re import finditer
 import copy
+from zlib import crc32, adler32
 
 # nemere import
 from nemere.utils.baseAlgorithms import ngrams
@@ -477,13 +478,42 @@ class FeatureExtraction(object):
                 elif curr_eq_prev < 0.25 and curr_less_prev < 0.1:
                     to_insert.update({pos: (Raw(nbBytes=1), "SEQ")})
                 else:
-                    # if it is no sequence field, but the entropy is high, it might be a checksum
+                    # it is no sequence field, but the entropy is high, might be worth noting...
                     if e > 7.0:
-                        to_insert.update({pos: (Raw(nbBytes=1), "Checksum")})
-                        # TODO implement actual Checksum test, to be sure
+                        to_insert.update({pos: (Raw(nbBytes=1), "High_entropy")})
 
         # insert new fields to symbol
         self._insertFields(symbol, to_insert)
+
+        # test if last protocol field is a checksum (if marked "high entropy" and has four bytes)
+        # actually, it is symbol.fields[-2], because last field of the symbol is payload field
+        # TODO may needs improvement, e.g. if protocol never includes a payload, this probably fails
+        # furthermore, checksum that is behind a payload is currently cut off and thus lost :(
+        if len(symbol.fields) >= 2 and \
+                symbol.fields[-2].name == "High_entropy" and \
+                symbol.fields[-2].domain.dataType.size == (32, 32):
+
+            # we want to test some messages, to prevent malformed packets, but 10 shall be enough
+            msgs_to_test = 10 if 10 < len(symbol.messages) else len(symbol.messages)
+            for i in range(0, msgs_to_test):
+
+                # divide potential checksum and the rest of the data
+                checksum_value = symbol.messages[i].data[-4:]
+                data_without_checksum = symbol.messages[i].data[:-4]
+
+                # calculate well-known checksums TODO add more commonly known checksums
+                crc32_result = crc32(data_without_checksum).to_bytes(4, byteorder='little')
+                adler32_result = adler32(data_without_checksum).to_bytes(4, byteorder='little')
+
+                if checksum_value == crc32_result:
+                    symbol.fields[-2].name = "crc32"
+                    break
+                elif checksum_value == adler32_result:
+                    symbol.fields[-2].name = "adler32"
+                    break
+                else:
+                    # it still pretty much *looks* like a checksum...
+                    symbol.fields[-2].name = "Checksum?"
 
         return
 
@@ -614,12 +644,19 @@ class FeatureExtraction(object):
         makes further analysis much faster and easier.
         """
 
+        fields_to_deduplicate = [
+                "SEQ",
+                "crc32",
+                "adler32",
+                "Checksum?",
+                ]
+
         # find positions of SEQ and Checksum fields
         field_positions = []
         begin_pos = end_pos = 0
         for field in sym.fields:
             _, end_pos = field.domain.dataType.size
-            if field.name == "SEQ" or field.name == "Checksum":
+            if field.name in fields_to_deduplicate:
                 # store byte position in message
                 field_positions.append((int(begin_pos/8), int((begin_pos+end_pos)/8)))
             begin_pos += end_pos
