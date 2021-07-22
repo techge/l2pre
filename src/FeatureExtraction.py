@@ -692,6 +692,32 @@ class FeatureExtraction(object):
         :return: clustered messages from all pcaps with enriched field information based on context
         """
 
+        def mergeSymbols(sym_list: list):
+            """Auxilliary function to merge a list of symbols - if possible - otherwise multiple
+            symbols are returned.
+            """
+            merged_sym = []
+            sym_cnt = 1
+            for sym in sym_list:
+                if not merged_sym:
+                    merged_sym = [sym]
+                # are the fields of the current symbol similar to the other sym?
+                elif self._fieldsAreSimilar(merged_sym[0], sym):
+                    # add messages to existing symbol
+                    merged_sym[0].messages.extend(sym.messages)
+                    merged_sym[0].orig_messages.extend(sym.orig_messages)
+                # the symbols differ, we need to add the symbol instead of merging
+                else:
+                    # TODO we might compare multiple syms, if most are similar, wie dismiss the
+                    # differing one
+                    print("Warning: Created symbols of different traces did not match, " + \
+                            "that is {}. \n".format(sym.name) + \
+                            "We added both, so you might see which is correct yourself.")
+                    sym.name = sym.name + "-" + str(sym_cnt) # add number to name
+                    sym_cnt += 1
+                    merged_sym.append(sym)
+            return merged_sym
+
         # put all symbols of the separate clusters in a single dict - symbolname: [symbols]
         symbol_dict = {}
         for cluster in cluster_list:
@@ -708,13 +734,16 @@ class FeatureExtraction(object):
                 else:
                     symbol_dict[symbol.name].append(symbol)
 
-
         # create entropies and compare values per symbol type
         frametypes_cluster = [] # list of merged symbols that will be returned at last
         for sym_list in symbol_dict.values():
 
             # avoid false possitives for symbols with only a few messages (unreliable entropy value)
             if all(len(sym.messages) < 2 for sym in sym_list): # TODO re-evaluate threshold
+                # nevertheless, we will add them to our frametypes_cluster...
+                merged_sym = mergeSymbols(sym_list)
+                for sym in merged_sym:
+                    frametypes_cluster.append(sym)
                 continue
 
             # create entropy list
@@ -794,33 +823,19 @@ class FeatureExtraction(object):
                             feature_per_position.update({i: (Raw(nbBytes=1), feat_str)})
 
             # merge items of sym_list into a symbol
-            merged_sym = []
-            sym_cnt = 1
-            for sym in sym_list:
-                if not merged_sym:
-                    merged_sym = [sym]
-                # are the fields of the current symbol similar to the other sym?
-                elif self._fieldsAreSimilar(merged_sym[0], sym):
-                    # add messages to existing symbol
-                    merged_sym[0].messages.extend(sym.messages)
-                    merged_sym[0].orig_messages.extend(sym.orig_messages)
-                # the symbols differ, we need to add the symbol instead of merging
-                else:
-                    # TODO we might compare multiple syms, if most are similar, wie dismiss the
-                    # differing one
-                    print("Warning: Created symbols of different traces did not match, " + \
-                            "that is {}. \n".format(sym.name) + \
-                            "We added both, so you might see which is correct yourself.")
-                    sym.name = sym.name + "-" + str(sym_cnt) # add number to name
-                    sym_cnt += 1
-                    merged_sym.append(sym)
+            merged_sym = mergeSymbols(sym_list)
 
+            # insert features and add to frametypes_cluster
             for sym in merged_sym:
                 # insert context information as fields of symbol
                 self._insertFields(sym, feature_per_position)
 
                 # add symbol to cluster
                 frametypes_cluster.append(sym)
+
+        if len(symbol_dict) > len(frametypes_cluster):
+            raise ValueError("Merging symbols failed! There got {} symbols lost.".format(
+                len(symbol_dict)-len(frametypes_cluster)))
 
         return frametypes_cluster
 
