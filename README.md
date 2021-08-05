@@ -2,7 +2,9 @@ Layer 2 Protocol Reverse Engineering
 
 ## Description
 
-TODO (+ add overview figure)
+`l2pre` is a tool to reverse engineer protocols working on the data link layer e.g., protocols similar to IEEE 802.11 or protocols of (wireless) embedded devices. It looks for address, frame type, sequence and checksum fields. Furthermore, it can infer context related fields if context information is submitted via `.yaml` files. Speaking of input files, `l2pre` takes `.pcapng` files that are captures of the protocol at question. See [the example](#example) to get an impression of the usage of `l2pre`. The figure below shows the general idea.
+
+![overview of l2pre](overview.png)
 
 ## Build and Dependencies
 
