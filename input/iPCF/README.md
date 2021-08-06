@@ -4,8 +4,8 @@ This folder contains pcapng files captured during a session with Siemens Scalanc
 
 Some requests where produced on a laptop connected to a Scalance W700 device working as client. This was done via [the requests.sh script](../requests.sh) to produce payload content.
 
-|---------|---------|---------|------------------|------------------|---------------|---------|
 | Testno. | clients | channel | cycle time in ms | protocol support | scanning Mode | iPCF-LF |
+|---------|---------|---------|------------------|------------------|---------------|---------|
 | 1 | 1 | 157 | 16 | Ethernet/IP | All | disabled |
 | 2 | 1 | 161 | 16 | Ethernet/IP | All | disabled |
 | 3 | 1 | 157 | 32 | Ethernet/IP | All | disabled |
@@ -13,7 +13,6 @@ Some requests where produced on a laptop connected to a Scalance W700 device wor
 | 5 | 2 | 157 | 16 | Ethernet/IP | All | disabled |
 | 6 | 1 | 157 | 16 | Ethernet/IP | Next | disabled |
 | 7 | 1 | 157 | 16 | Ethernet/IP | All | enabled |
-|---------|---------|---------|------------------|------------------|---------------|---------|
 
 All files have been filtered (only type 3 frames)
 
