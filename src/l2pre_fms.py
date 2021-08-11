@@ -29,10 +29,10 @@ debug = False
 """Some modules and methods contain debug output that can be activated by this flag."""
 
 
-def prepareMessages(symbols):
+def prepareMessages(symbols, specimens):
     """Restores content of symbol.messages to the original, not deduplicated messages, including the
-    payload and appends a payload field to symbol.fields. This way these symbols can be used by the
-    comparator.
+    payload and appends a payload field to symbol.fields. Afterwards, connect the message object of
+    the comparator to the symbol, so that it is able to compare the format.
     """
 
     # restore original messages, as l2pre normally only outputs the unique ones
@@ -44,13 +44,40 @@ def prepareMessages(symbols):
 
     # restore payload data by adding a field to symbol and appending payload data again
     for sym in symbols:
-        max_payload_size = max([len(m.payload_data) for m in sym.messages])
+
+        # check if payloads exist and what the max size is (for payload field)
+        payloads = []
+        for m in sym.messages:
+            if m.payload:
+                payloads.append(m.payload_data)
+        if payloads:
+            max_payload_size = max([len(pl) for pl in payloads])
+        else:
+            continue
         max_payload_size *= 8 # bits, not bytes
-        payload_field = Field(Raw(nbBytes=(0,max_payload_size)))
+
+        # create and add payload field
+        payload_field = Field(Raw(nbBytes=(0, max_payload_size)))
         sym.fields.append(payload_field)
+
+        # append payload data to message.data
         for m in sym.messages:
             if m.payload:
                 m.data += m.payload_data
+
+        # match specimenloader logic by using their message object
+        newmsgs = []
+        for m in sym.messages:
+            newmsg = None
+            for specmsg in specimens.messagePool.keys():
+                if m.data == specmsg.data:
+                    newmsg = specmsg
+                    break
+            if not newmsg:
+                raise
+            newmsgs.append(newmsg)
+        sym.messages = newmsgs
+
 
 def main(args):
 
@@ -59,8 +86,7 @@ def main(args):
     # TODO import multiple files in SpecimenLoader and everywhere else, basically...
     specimens = SpecimenLoader(args.files[0], layer=args.layer,
                                relativeToIP=False)
-    comparator = MessageComparator(specimens, pcap=args.files[0], layer=args.layer,
-                               relativeToIP=False,
+    comparator = MessageComparator(specimens, pcap=args.files[0], 
                                failOnUndissectable=False, debug=debug)
     # for l2pre
     messages_list = import_messages(args.files, importLayer=args.layer)
@@ -72,7 +98,7 @@ def main(args):
     inference_runtime = time() - inference_start_time
 
     # prepare messages to have the format, the comparator expects
-    prepareMessages(symbols)
+    prepareMessages(symbols, specimens)
 
     # print inference results
     comparator.pprintInterleaved(symbols)
