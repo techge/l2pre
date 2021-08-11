@@ -3,7 +3,9 @@ from os.path import isfile
 from yaml import safe_load
 
 # netzob import
+from netzob.Common.Utils.Decorators import typeCheck
 from netzob.Import.PCAPImporter.all import PCAPImporter
+from netzob.Model.Vocabulary.Symbol import Symbol
 
 def import_messages(files, importLayer=1):
     """Import pcap and context yaml files.
@@ -35,3 +37,10 @@ def import_messages(files, importLayer=1):
 
     return messages
 
+@typeCheck(Symbol)
+def printFields(symbol):
+    """Auxiliary funtion to print name and size of fields of a given symbol without parsing the
+    messages or alike.
+    """
+    for field in symbol.fields:
+        print(field.name, ": ", field.domain.dataType.size)

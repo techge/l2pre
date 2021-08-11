@@ -17,6 +17,7 @@ from netzob.Model.Vocabulary.Types.Raw import Raw
 
 # internal import
 from WithPayloadMessage import WithPayloadMessage
+from utils import printFields
 
 
 class FeatureExtraction(object):
@@ -308,7 +309,7 @@ class FeatureExtraction(object):
                 end += int(max_size/8)
                 break
             if min_size != max_size:
-                self._printFields(symbol)
+                printFields(symbol)
                 raise ValueError("_getValuesQuick() only works with Symbols that only have " + \
                         "fixed-size fields, use Field.getValues() instead.")
             end += int(max_size/8)
@@ -355,7 +356,7 @@ class FeatureExtraction(object):
 
         # we depend on address addresses to evaluate certainty of sequence bytes
         if not addr_field_index:
-            self._printFields(symbol)
+            printFields(symbol)
             raise ValueError("No address field(s) found in field")
 
         if symbol.messages is None:
@@ -590,7 +591,7 @@ class FeatureExtraction(object):
 
                 # we are not at last field, but already reached max length, something went wrong
                 else:
-                    self._printFields(sym)
+                    printFields(sym)
                     errormessage = "The biggest message of symbol {}".format(sym.name) + \
                             "is shorter than last field. This indicates a problem."
                     raise Exception(errormessage)
@@ -843,14 +844,6 @@ class FeatureExtraction(object):
     #    # TODO
     #    return
 
-
-    @typeCheck(Symbol)
-    def _printFields(self, symbol):
-        """Auxiliary funtion to print name and size of fields of a given symbol without parsing the
-        messages or alike.
-        """
-        for field in symbol.fields:
-            print(field.name, ": ", field.domain.dataType.size)
 
     def execute(self):
         """Apply all detection methods at hand to the given messages.
