@@ -50,7 +50,8 @@ def main(args):
     # print symbols (omitting messages if there are too many)
     for symbol in cluster:
         msgs_backup = None
-        print("\n{}: {} unique messages".format(symbol.name, str(len(symbol.messages))))
+        print("\n{}: {} unique messages (of {} messages)".format(
+            symbol.name, str(len(symbol.messages)), str(len(symbol.orig_messages))))
         # omit messages to have a nicer print...
         if len(symbol.messages) > 30:
             msgs_backup = symbol.messages
