@@ -186,11 +186,17 @@ class FeatureExtraction(object):
         def searchForAddr(addr: str):
             addr_pos_cnt = {} # count how often a addr was seen at a position
             for m in messages:
-                for finding in finditer(addr, m.data): # find all occurences of addr in message
-                    if finding.start() in addr_pos_cnt.keys():
-                        addr_pos_cnt[finding.start()]+=1
-                    else: # create new dict entry if not already in the dict
-                        addr_pos_cnt[finding.start()]=1
+                try:
+                    for finding in finditer(addr, m.data): # find all occurences of addr in message
+                        if finding.start() in addr_pos_cnt.keys():
+                            addr_pos_cnt[finding.start()]+=1
+                        else: # create new dict entry if not already in the dict
+                            addr_pos_cnt[finding.start()]=1
+                except e:
+                    print("Something strange happened during address search \n{}\n We proceed" + \
+                            "anyway as finditer is not escaping strings which sometimes leads " + \
+                            "to errors.".format(e))
+                    pass
             return addr_pos_cnt
 
         def evaluateAddrCertainty(addr_pos_cnt: dict, addr_len: int):
