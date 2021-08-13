@@ -1,6 +1,5 @@
 # system import
 from binascii import unhexlify
-from re import finditer
 import copy
 from zlib import crc32, adler32
 
@@ -186,17 +185,15 @@ class FeatureExtraction(object):
         def searchForAddr(addr: str):
             addr_pos_cnt = {} # count how often a addr was seen at a position
             for m in messages:
-                try:
-                    for finding in finditer(addr, m.data): # find all occurences of addr in message
-                        if finding.start() in addr_pos_cnt.keys():
-                            addr_pos_cnt[finding.start()]+=1
-                        else: # create new dict entry if not already in the dict
-                            addr_pos_cnt[finding.start()]=1
-                except e:
-                    print("Something strange happened during address search \n{}\n We proceed" + \
-                            "anyway as finditer is not escaping strings which sometimes leads " + \
-                            "to errors.".format(e))
-                    pass
+                begin = 0
+                addr_pos = m.data.find(addr, begin)
+                while addr_pos >= 0:
+                    if addr_pos in addr_pos_cnt.keys():
+                        addr_pos_cnt[addr_pos]+=1
+                    else: # create new dict entry if not already in the dict
+                        addr_pos_cnt[addr_pos]=1
+                    begin = addr_pos + 1
+                    addr_pos = m.data.find(addr, begin)
             return addr_pos_cnt
 
         def evaluateAddrCertainty(addr_pos_cnt: dict, addr_len: int):
