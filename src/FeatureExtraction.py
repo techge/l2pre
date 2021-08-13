@@ -139,11 +139,9 @@ class FeatureExtraction(object):
                 # delete following fields if necessary
                 while curr_size + maxsize < insert_pos + new_field_size: # new field spans >1 field
                     if oldField == symbol.fields[-1]: # we already reached the last field
-                        print("Reached last field")
                         break
                     i += 1
-                    oldField = symbol.fields[i] # update oldfield to next field
-                    nextmins, nextmaxs = (int(bits/8) for bits in oldField.domain.dataType.size)
+                    nextmins, nextmaxs = (int(bits/8) for bits in symbol.fields[i].domain.dataType.size)
                     minsize += nextmins
                     maxsize += nextmaxs
                     fo.replaceField(symbol.fields[i], []) # delete field
