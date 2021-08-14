@@ -35,6 +35,20 @@ def prepareMessages(symbols, specimens):
     the comparator to the symbol, so that it is able to compare the format.
     """
 
+    def applySpecimenMessage(sym):
+        # match specimenloader logic by using their message object
+        newmsgs = []
+        for m in sym.messages:
+            newmsg = None
+            for specmsg in specimens.messagePool.keys():
+                if m.data == specmsg.data and m.date == specmsg.date:
+                    newmsg = specmsg
+                    break
+            if not newmsg:
+                raise
+            newmsgs.append(newmsg)
+        sym.messages = newmsgs
+
     # restore original messages, as l2pre normally only outputs the unique ones
     for sym in symbols:
         if sym.orig_messages:
@@ -53,6 +67,7 @@ def prepareMessages(symbols, specimens):
         if payloads:
             max_payload_size = max([len(pl) for pl in payloads])
         else:
+            applySpecimenMessage(sym)
             continue
         max_payload_size *= 8 # bits, not bytes
 
@@ -65,18 +80,7 @@ def prepareMessages(symbols, specimens):
             if m.payload:
                 m.data += m.payload_data
 
-        # match specimenloader logic by using their message object
-        newmsgs = []
-        for m in sym.messages:
-            newmsg = None
-            for specmsg in specimens.messagePool.keys():
-                if m.data == specmsg.data:
-                    newmsg = specmsg
-                    break
-            if not newmsg:
-                raise
-            newmsgs.append(newmsg)
-        sym.messages = newmsgs
+        applySpecimenMessage(sym)
 
 
 def main(args):
