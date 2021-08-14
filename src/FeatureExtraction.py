@@ -561,42 +561,52 @@ class FeatureExtraction(object):
         if sym.messages is None:
             raise ValueError("No messages were given, this shouldn't be the case")
 
-        max_len = max(len(x.data) for x in sym.messages)
-        min_len = min(len(x.data) for x in sym.messages)
-        mins = maxs = 0
+        max_len = max(len(x.data) for x in sym.messages) # size of longest message
+        min_len = min(len(x.data) for x in sym.messages) # size of shortest message
+        mins = maxs = 0 # cumulated minimal and maximal size of fields
 
-        for field in sym.fields:
+        for ifield, field in enumerate(sym.fields):
             newmin, newmax = field.domain.dataType.size
             newmin = int(newmin/8)
             newmax = int(newmax/8)
             mins += newmin
             maxs += newmax
-            if maxs > max_len:
-                # last field reached, we only need to change size
-                if field == sym.fields[-1]:
-                    # set newmax
-                    maxdiff = maxs - max_len
-                    newmax -= maxdiff
-                    # set newmin
-                    if mins < min_len:
-                        mindiff = min_len - mins
-                        if newmin + mindiff < newmax:
-                            newmin += mindiff
-                        else:
-                            newmin = newmax
-                    if newmax == 0: # delete empty field
-                        fo = FieldOperations()
-                        fo.replaceField(field, [])
+
+            if mins > min_len: # message can be shorter than anticipated, adapt our protocol format
+                mindiff = mins - min_len
+                newmin -= mindiff
+                field.domain.dataType.size = (newmin*8, newmax*8) # set new min size
+                if field != sym.fields[-1]: # set all following fields to minsize zero
+                    for i in range(ifield+1, len(sym.fields)):
+                        _, s = sym.fields[i].domain.dataType.size
+                        sym.fields[i].domain.dataType.size = (0, s) # set min to zero
+
+
+            if maxs > max_len: # more space is "allocated" by format than needed
+                # we are not at last field, but already reached max length -> delete unneeded fields
+                if field != sym.fields[-1]:
+                    fo = FieldOperations()
+                    for i in range(len(sym.fields)-1, ifield, -1):
+                        fo.replaceField(sym.fields[i], [])
+
+                # now we need to change the size of (new) last field
+                # set newmax
+                maxdiff = maxs - max_len
+                newmax -= maxdiff
+                # set newmin
+                if mins <= min_len:
+                    mindiff = min_len - mins
+                    if newmin + mindiff < newmax:
+                        newmin += mindiff
                     else:
-                        field.domain.dataType.size = (newmin*8, newmax*8) # set new field
-
-                # we are not at last field, but already reached max length, something went wrong
+                        newmin = newmax
+                if newmax <= 0: # delete empty field
+                    fo = FieldOperations()
+                    fo.replaceField(field, [])
                 else:
-                    printFields(sym)
-                    errormessage = "The biggest message of symbol {}".format(sym.name) + \
-                            "is shorter than last field. This indicates a problem."
-                    raise Exception(errormessage)
+                    field.domain.dataType.size = (newmin*8, newmax*8) # set new size values
 
+                break # we are done here...
         return
 
 
