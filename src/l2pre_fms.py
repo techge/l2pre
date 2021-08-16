@@ -90,7 +90,7 @@ def main(args):
     # TODO import multiple files in SpecimenLoader and everywhere else, basically...
     specimens = SpecimenLoader(args.files[0], layer=args.layer,
                                relativeToIP=False)
-    comparator = MessageComparator(specimens, pcap=args.files[0], 
+    comparator = MessageComparator(specimens, pcap=args.files[0], omitPayload=args.omit_payload,
                                failOnUndissectable=False, debug=debug)
     # for l2pre
     messages_list = import_messages(args.files, importLayer=args.layer)
@@ -138,8 +138,10 @@ if __name__ == '__main__':
     parser.add_argument('-nt', '--no-tunnel', action='store_true', default=False, \
             help='Do not look for Ethernet frames while searching for payloads. To use in case ' + \
             'of layer 2 replacements of Ethernet, but NOT in case of tunneled Ethernet+X traffic')
+    parser.add_argument('-p', '--omit-payload', action='store_true', \
+            help='Ignore payload during format comparison. Useful for protocols with big payload.')
     parser.add_argument('-i', '--interactive', action='store_true', \
-            help='start interactive session after automatic protocol reversing')
+            help='Start interactive session after automatic protocol reversing')
 
     args = parser.parse_args()
 
